@@ -4,6 +4,14 @@ import { getUserByCredentials, registerUser, isErrorResponse } from '../../servi
 import { useUser } from '../../hooks/useUser';
 import toast from 'react-hot-toast';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateForm(name: string, email: string): string | null {
+  if (!name || !email) return 'Please fill in all fields';
+  if (!EMAIL_REGEX.test(email)) return 'Please enter a valid email address';
+  return null;
+}
+
 interface UserIdentificationProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,9 +27,13 @@ export const UserIdentification = ({ isOpen, onClose, onSuccess }: UserIdentific
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!name.trim() || !email.trim()) {
-      toast.error('Please fill in all fields');
+
+    const n = name.trim();
+    const em = email.trim();
+
+    const validationError = validateForm(n, em);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -30,28 +42,28 @@ export const UserIdentification = ({ isOpen, onClose, onSuccess }: UserIdentific
     try {
       if (isNewUser) {
         // Register new user
-        const result = await registerUser({ name: name.trim(), email: email.trim() });
-        
+        const result = await registerUser({ name: n, email: em });
+
         if (isErrorResponse(result)) {
           toast.error(result.details || result.error);
           return;
         }
-        
+
         setUser(result);
         toast.success('Account created successfully!');
         onSuccess();
         onClose();
       } else {
         // Try to find existing user
-        const result = await getUserByCredentials(name.trim(), email.trim());
-        
+        const result = await getUserByCredentials(n, em);
+
         if (isErrorResponse(result)) {
           // User not found, suggest registration
           toast.error('User not found. Please register or check your credentials.');
           setIsNewUser(true);
           return;
         }
-        
+
         setUser(result);
         toast.success(`Welcome back, ${result.name}!`);
         onSuccess();

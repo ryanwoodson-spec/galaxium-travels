@@ -25,7 +25,9 @@ class TestFlightService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
@@ -81,21 +83,23 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
         user_obj = db_session.query(User).first()
         flight_obj = db_session.query(Flight).first()
 
-        result = booking.book_flight(db_session, user_obj.user_id, "Test User", flight_obj.flight_id)
+        result = booking.book_flight(db_session, user_obj.user_id, "Test User", flight_obj.flight_id, "economy")
         assert result.status == "booked"
         assert result.user_id == user_obj.user_id
         assert result.flight_id == flight_obj.flight_id
 
-        # Verify seat was decremented
+        # Verify economy seat was decremented
         db_session.refresh(flight_obj)
-        assert flight_obj.seats_available == 4
+        assert flight_obj.seats_economy == 4
 
     def test_book_flight_not_found(self, db_session):
         """Test booking non-existent flight."""
@@ -103,7 +107,7 @@ class TestBookingService:
         db_session.commit()
         user_obj = db_session.query(User).first()
 
-        result = booking.book_flight(db_session, user_obj.user_id, "Test User", 999)
+        result = booking.book_flight(db_session, user_obj.user_id, "Test User", 999, "economy")
         assert isinstance(result, ErrorResponse)
         assert result.error_code == "FLIGHT_NOT_FOUND"
 
@@ -116,14 +120,16 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=0
+            seats_economy=0,
+            seats_business=0,
+            seats_galaxium=0,
         ))
         db_session.commit()
 
         user_obj = db_session.query(User).first()
         flight_obj = db_session.query(Flight).first()
 
-        result = booking.book_flight(db_session, user_obj.user_id, "Test User", flight_obj.flight_id)
+        result = booking.book_flight(db_session, user_obj.user_id, "Test User", flight_obj.flight_id, "economy")
         assert isinstance(result, ErrorResponse)
         assert result.error_code == "NO_SEATS_AVAILABLE"
 
@@ -135,12 +141,14 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
         flight_obj = db_session.query(Flight).first()
 
-        result = booking.book_flight(db_session, 999, "Fake User", flight_obj.flight_id)
+        result = booking.book_flight(db_session, 999, "Fake User", flight_obj.flight_id, "economy")
         assert isinstance(result, ErrorResponse)
         assert result.error_code == "USER_NOT_FOUND"
 
@@ -153,14 +161,16 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
         user_obj = db_session.query(User).first()
         flight_obj = db_session.query(Flight).first()
 
-        result = booking.book_flight(db_session, user_obj.user_id, "Wrong Name", flight_obj.flight_id)
+        result = booking.book_flight(db_session, user_obj.user_id, "Wrong Name", flight_obj.flight_id, "economy")
         assert isinstance(result, ErrorResponse)
         assert result.error_code == "NAME_MISMATCH"
 
@@ -173,7 +183,9 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=4
+            seats_economy=4,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
@@ -184,7 +196,8 @@ class TestBookingService:
             user_id=user_obj.user_id,
             flight_id=flight_obj.flight_id,
             status="booked",
-            booking_time="2099-01-01T10:00:00Z"
+            seat_class="economy",
+            booking_time="2099-01-01T10:00:00Z",
         ))
         db_session.commit()
 
@@ -193,9 +206,9 @@ class TestBookingService:
 
         assert result.status == "cancelled"
 
-        # Verify seat was restored
+        # Verify economy seat was restored
         db_session.refresh(flight_obj)
-        assert flight_obj.seats_available == 5
+        assert flight_obj.seats_economy == 5
 
     def test_cancel_booking_not_found(self, db_session):
         """Test cancelling non-existent booking."""
@@ -212,7 +225,9 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
@@ -223,7 +238,8 @@ class TestBookingService:
             user_id=user_obj.user_id,
             flight_id=flight_obj.flight_id,
             status="cancelled",
-            booking_time="2099-01-01T10:00:00Z"
+            seat_class="economy",
+            booking_time="2099-01-01T10:00:00Z",
         ))
         db_session.commit()
 
@@ -242,7 +258,9 @@ class TestBookingService:
             departure_time="2099-01-01T09:00:00Z",
             arrival_time="2099-01-01T17:00:00Z",
             price=1000000,
-            seats_available=5
+            seats_economy=5,
+            seats_business=2,
+            seats_galaxium=1,
         ))
         db_session.commit()
 
@@ -253,7 +271,8 @@ class TestBookingService:
             user_id=user_obj.user_id,
             flight_id=flight_obj.flight_id,
             status="booked",
-            booking_time="2099-01-01T10:00:00Z"
+            seat_class="economy",
+            booking_time="2099-01-01T10:00:00Z",
         ))
         db_session.commit()
 

@@ -1,81 +1,43 @@
-import { useState, useEffect } from 'react';
-import type { Flight } from '../types';
+import { useState, useEffect, useMemo } from 'react';
 import { LoadingSpinner } from '../components/common';
 import { FlightCard } from '../components/flights/FlightCard';
 import { UserIdentification } from '../components/user/UserIdentification';
 import { BookingModal } from '../components/bookings/BookingModal';
-import { getFlights } from '../services/api';
-import { useUser } from '../hooks/useUser';
+import { useFlights } from '../hooks/useFlights';
+import { useBookingFlow } from '../hooks/useBookingFlow';
 import { Search, Filter } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 export const Flights = () => {
-  const { user } = useUser();
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [filteredFlights, setFilteredFlights] = useState<Flight[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { flights, isLoading, reload } = useFlights();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
+
+  const {
+    selectedFlight,
+    showUserModal,
+    setShowUserModal,
+    showBookingModal,
+    setShowBookingModal,
+    handleBookFlight,
+    handleUserIdentified,
+    handleBookingSuccess,
+  } = useBookingFlow(reload);
 
   // Fetch flights on mount
   useEffect(() => {
-    loadFlights();
-  }, []);
+    reload();
+  }, [reload]);
 
-  // Filter flights when search term changes
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredFlights(flights);
-      return;
-    }
-
-    const term = searchTerm.toLowerCase();
-    const filtered = flights.filter(
-      (flight) =>
-        flight.origin.toLowerCase().includes(term) ||
-        flight.destination.toLowerCase().includes(term)
+  // Derive filtered flights from flights + searchTerm
+  const filteredFlights = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return flights;
+    return flights.filter(
+      (f) =>
+        f.origin.toLowerCase().includes(term) ||
+        f.destination.toLowerCase().includes(term)
     );
-    setFilteredFlights(filtered);
-  }, [searchTerm, flights]);
-
-  const loadFlights = async () => {
-    setIsLoading(true);
-    try {
-      const data = await getFlights();
-      setFlights(data);
-      setFilteredFlights(data);
-    } catch (error: any) {
-      toast.error('Failed to load flights');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleBookFlight = (flight: Flight) => {
-    setSelectedFlight(flight);
-    
-    if (!user) {
-      // Show user identification modal first
-      setShowUserModal(true);
-    } else {
-      // Show booking confirmation modal
-      setShowBookingModal(true);
-    }
-  };
-
-  const handleUserIdentified = () => {
-    // After user signs in, show booking modal
-    setShowBookingModal(true);
-  };
-
-  const handleBookingSuccess = () => {
-    // Reload flights to get updated seat availability
-    loadFlights();
-  };
+  }, [flights, searchTerm]);
 
   return (
     <div className="space-y-8">
